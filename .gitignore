@@ -1,1 +1,14 @@
+# Virtual environments
 venv/
+.env
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# Large files
+*.dll
+*.lib
+
+
