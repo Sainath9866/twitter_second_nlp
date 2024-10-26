@@ -1,40 +1,58 @@
+# Install necessary dependencies
+
+
+# Import required libraries
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from transformers import pipeline
 from fastapi.middleware.cors import CORSMiddleware
 
-# Create FastAPI app instance first
+
+
+# Load sentiment analysis model from Hugging Face
+print("Loading model...")
+sentiment_pipeline = pipeline("sentiment-analysis", model="nlptown/bert-base-multilingual-uncased-sentiment")
+
+# Define FastAPI app
 app = FastAPI()
 
-# Add CORS middleware right after app creation
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # You need to specify origins here
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # You need to specify methods here
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Initialize the sentiment-analysis model
-sentiment = pipeline("sentiment-analysis", model="finiteautomata/bertweet-base-sentiment-analysis")
-
-# Define input and output data structures
-class TextInput(BaseModel):
+# Define a Pydantic model for request body
+class TextData(BaseModel):
     text: str
 
 @app.post("/analyze/")
-def analyze_sentiment(input: TextInput):
+async def analyze_sentiment(data: TextData):
     try:
-        emotion = sentiment(input.text, max_length=40, truncation=True)
-        return {"label": emotion[0]['label']}
+        # Analyze the sentiment of the input text
+        result = sentiment_pipeline(data.text)[0]
+        sentiment_label = result['label']
+        score = result['score']
+
+        # Convert Hugging Face labels to POS, NEG, or NEUTRAL
+        if sentiment_label in ["1 star", "2 stars"]:
+            sentiment = "NEG"
+        elif sentiment_label == "3 stars":
+            sentiment = "NEUTRAL"
+        else:
+            sentiment = "POS"
+
+        return {
+            "text": data.text,
+            "sentiment": sentiment,
+            "confidence": round(score, 2)
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/")
-def read_root():
-    return {"message": "Welcome to the Sentiment Analysis API!"}
-
-# Run the API
+# Run the app with Uvicorn
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
