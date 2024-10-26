@@ -1,6 +1,19 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from transformers import pipeline
+from fastapi.middleware.cors import CORSMiddleware
+
+# Create FastAPI app instance first
+app = FastAPI()
+
+# Add CORS middleware right after app creation
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # You need to specify origins here
+    allow_credentials=True,
+    allow_methods=["*"],  # You need to specify methods here
+    allow_headers=["*"],
+)
 
 # Initialize the sentiment-analysis model
 sentiment = pipeline("sentiment-analysis", model="finiteautomata/bertweet-base-sentiment-analysis")
@@ -8,8 +21,6 @@ sentiment = pipeline("sentiment-analysis", model="finiteautomata/bertweet-base-s
 # Define input and output data structures
 class TextInput(BaseModel):
     text: str
-
-app = FastAPI()
 
 @app.post("/analyze/")
 def analyze_sentiment(input: TextInput):
@@ -22,7 +33,6 @@ def analyze_sentiment(input: TextInput):
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the Sentiment Analysis API!"}
-
 
 # Run the API
 if __name__ == "__main__":
