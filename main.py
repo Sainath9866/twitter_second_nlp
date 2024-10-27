@@ -28,6 +28,10 @@ app.add_middleware(
 class TextData(BaseModel):
     text: str
 
+@app.get("/")
+async def read_root():
+    return {"message": "Hello, World!"}
+    
 @app.post("/analyze/")
 async def analyze_sentiment(data: TextData):
     try:
